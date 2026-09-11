@@ -1,0 +1,30 @@
+[package]
+name = "mwlz"
+version = "0.1.0"
+edition = "2024"
+authors = ["meow-land"]
+repository = "https://github.com/meow-land/mwlz"
+description = "Embedded ultra-fast deterministic dictionary compression algorithm for .mw container"
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["compression", "lzw", "lz", "no-std", "embedded"]
+categories = ["compression", "no-std"]
+
+include = [
+    "src/**/*",
+    "LICENSE*",
+    "README.md",
+    "Cargo.toml",
+]
+
+[lib]
+name = "mwlz"
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = ["alloc"]
+alloc = []
+
+[dependencies]
+mwhash = { version = "0.1.1", default-features = false }
