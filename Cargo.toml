@@ -12,6 +12,8 @@ categories = ["compression", "no-std"]
 
 include = [
     "src/**/*",
+    "tests/**/*",
+    "examples/**/*",
     "LICENSE*",
     "README.md",
     "Cargo.toml",

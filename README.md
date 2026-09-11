@@ -318,4 +318,4 @@ If you need the best possible ratio, use Zstd. If you need predictable, cache-bo
 
 ## License
 
-Licensed under the Apache License, Version 2.0 ([LICENSE](LICENSE) or <http://www.apache.org/licenses/LICENSE-2.0>).
+Licensed under the Apache License, Version 2.0 ([LICENSE](./LICENSE) or <http://www.apache.org/licenses/LICENSE-2.0>).
