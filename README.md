@@ -58,8 +58,9 @@ The lookup table naturally has 4 spare bits (explained below), so run length up 
 
 Once the tree fills up (4096 nodes), you choose what happens next:
 
-- **`DictMode::Freeze`** (default) — the tree stops growing and becomes read-only. No more node insertions, no more hash table writes — just fast lookups against an already-hot L1 structure. 1.5–2× faster compression on homogeneous data, which is most `.mw` blocks.
-- **`DictMode::Reset`** — the tree resets to the 256 roots and starts over. Use this when a block mixes formats internally (e.g. a JSON header followed by a binary blob), where a frozen dictionary tuned to the first format would just waste bytes on the second.
+- **`DictMode::Reset`** (default) — the tree resets to the 256 roots and starts over. Use this when a block mixes formats internally (e.g. a JSON header followed by a binary blob), where a frozen dictionary tuned to the first format would just waste bytes on the second.
+
+- **`DictMode::Freeze`** — the tree stops growing and becomes read-only. No more node insertions, no more hash table writes — just fast lookups against an already-hot L1 structure. 1.5–2× faster compression on homogeneous data, which is most `.mw` blocks.
 
 ### Raw fallback
 
