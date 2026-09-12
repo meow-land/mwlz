@@ -67,11 +67,32 @@ impl Node {
 /// Dictionary eviction policy when dictionary reaches 4096 nodes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum DictMode {
-    /// Mode Reset (0x00): Reset dictionary back to 256 root nodes when full.
-    #[default]
-    Reset,
     /// Mode Freeze (0x01): Freeze dictionary as read-only when full.
+    #[default]
     Freeze,
+    /// Mode Reset (0x00): Reset dictionary back to 256 root nodes when full.
+    Reset,
+}
+
+impl DictMode {
+    /// Extract the dictionary mode from chunk header flags.
+    #[inline(always)]
+    pub const fn from_flags(flags: u8) -> Self {
+        if (flags & FLAG_MODE_FREEZE) != 0 {
+            Self::Freeze
+        } else {
+            Self::Reset
+        }
+    }
+
+    /// Convert the dictionary mode to header flag bits.
+    #[inline(always)]
+    pub const fn to_flag(self) -> u8 {
+        match self {
+            Self::Freeze => FLAG_MODE_FREEZE,
+            Self::Reset => 0,
+        }
+    }
 }
 
 /// Errors returned during compression.

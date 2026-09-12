@@ -92,14 +92,14 @@ impl CompressorState {
 
         if self.node_count == MAX_NODES as u16 {
             match mode {
+                DictMode::Freeze => {
+                    self.is_frozen = true;
+                }
                 DictMode::Reset => {
                     self.node_count = ROOT_COUNT as u16;
                     self.hash_table.fill(Self::EMPTY_HASH);
                     self.prev_node = ROOT_PARENT_ID;
                     return true;
-                }
-                DictMode::Freeze => {
-                    self.is_frozen = true;
                 }
             }
         }
@@ -239,10 +239,7 @@ pub fn compress_into(
     // Fast path: empty input
     if src.is_empty() {
         dst[0..2].copy_from_slice(&MAGIC);
-        dst[2] = match mode {
-            DictMode::Reset => 0x00,
-            DictMode::Freeze => FLAG_MODE_FREEZE,
-        };
+        dst[2] = mode.to_flag();
         dst[3] = FORMAT_VERSION;
         dst[4..8].copy_from_slice(&0u32.to_le_bytes());
         return Ok(HEADER_SIZE);
@@ -350,7 +347,7 @@ pub fn compress_into(
                 return Err(CompressError::OutputBufferTooSmall);
             }
             dst[0..2].copy_from_slice(&MAGIC);
-            dst[2] = FLAG_RAW_FALLBACK | if mode == DictMode::Freeze { FLAG_MODE_FREEZE } else { 0 };
+            dst[2] = FLAG_RAW_FALLBACK | mode.to_flag();
             dst[3] = FORMAT_VERSION;
             dst[4..8].copy_from_slice(&(src.len() as u32).to_le_bytes());
             dst[HEADER_SIZE..HEADER_SIZE + src.len()].copy_from_slice(src);
@@ -365,7 +362,7 @@ pub fn compress_into(
             return Err(CompressError::OutputBufferTooSmall);
         }
         dst[0..2].copy_from_slice(&MAGIC);
-        dst[2] = FLAG_RAW_FALLBACK | if mode == DictMode::Freeze { FLAG_MODE_FREEZE } else { 0 };
+        dst[2] = FLAG_RAW_FALLBACK | mode.to_flag();
         dst[3] = FORMAT_VERSION;
         dst[4..8].copy_from_slice(&(src.len() as u32).to_le_bytes());
         dst[HEADER_SIZE..HEADER_SIZE + src.len()].copy_from_slice(src);
@@ -373,10 +370,7 @@ pub fn compress_into(
     }
 
     dst[0..2].copy_from_slice(&MAGIC);
-    dst[2] = match mode {
-        DictMode::Reset => 0x00,
-        DictMode::Freeze => FLAG_MODE_FREEZE,
-    };
+    dst[2] = mode.to_flag();
     dst[3] = FORMAT_VERSION;
     dst[4..8].copy_from_slice(&(src.len() as u32).to_le_bytes());
 

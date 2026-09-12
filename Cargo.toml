@@ -1,10 +1,10 @@
 [package]
 name = "mwlz"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["meow-land"]
 repository = "https://github.com/meow-land/mwlz"
-description = "Embedded ultra-fast deterministic dictionary compression algorithm for .mw container"
+description = "Deterministic dictionary compressor based on prefix trees and quantum byte-packs"
 license = "Apache-2.0"
 readme = "README.md"
 keywords = ["compression", "lzw", "lz", "no-std", "embedded"]

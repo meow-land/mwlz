@@ -1,6 +1,6 @@
 //! # mwLZ (Micro-Window LZ)
 //!
-//! Deterministic dictionary compression for the `.mw` container format.
+//! Deterministic dictionary compressor based on prefix trees and quantum byte-packs.
 //! Entire compressor/decompressor state fits in L1 data cache (24 KB / 16 KB).
 //! `#![no_std]`, zero heap allocations in the core engine.
 
@@ -12,12 +12,12 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-pub mod compress;
-pub mod decompress;
+mod compress;
+mod decompress;
 pub mod types;
 
-pub use compress::{compress_into, CompressorState};
-pub use decompress::{decompress_into, decompress_into_with_state, DecompressorState};
+pub use compress::CompressorState;
+pub use decompress::DecompressorState;
 pub use types::{
     CompressError, DecompressError, DictMode, Node, FLAG_MODE_FREEZE, FLAG_RAW_FALLBACK,
     FORMAT_VERSION, HEADER_SIZE, MAGIC, MAX_DEPTH, MAX_NODES, ROOT_COUNT,
@@ -49,7 +49,7 @@ pub fn compress(
     mode: DictMode,
 ) -> Result<usize, CompressError> {
     let mut state = CompressorState::new();
-    compress_into(src, dst, &mut state, mode)
+    compress::compress_into(src, dst, &mut state, mode)
 }
 
 /// Compress `src` into `dst`, reusing `state` across calls to avoid
@@ -61,13 +61,13 @@ pub fn compress_with_state(
     state: &mut CompressorState,
     mode: DictMode,
 ) -> Result<usize, CompressError> {
-    compress_into(src, dst, state, mode)
+    compress::compress_into(src, dst, state, mode)
 }
 
 /// Decompress `src` into `dst` with temporary stack allocation of workspace state.
 #[inline]
 pub fn decompress(src: &[u8], dst: &mut [u8]) -> Result<usize, DecompressError> {
-    decompress_into(src, dst)
+    decompress::decompress_into(src, dst)
 }
 
 /// Decompress `src` into `dst`, reusing `state` across calls to avoid
@@ -78,7 +78,7 @@ pub fn decompress_with_state(
     dst: &mut [u8],
     state: &mut DecompressorState,
 ) -> Result<usize, DecompressError> {
-    decompress_into_with_state(src, dst, state)
+    decompress::decompress_into_with_state(src, dst, state)
 }
 
 /// Extract the uncompressed size from an mwLZ chunk header (8 bytes).
@@ -109,11 +109,7 @@ pub fn dict_mode(src: &[u8]) -> Result<DictMode, DecompressError> {
     if src[3] != FORMAT_VERSION {
         return Err(DecompressError::UnsupportedVersion);
     }
-    if (src[2] & FLAG_MODE_FREEZE) != 0 {
-        Ok(DictMode::Freeze)
-    } else {
-        Ok(DictMode::Reset)
-    }
+    Ok(DictMode::from_flags(src[2]))
 }
 
 /// Check whether the chunk is in Raw Fallback mode (uncompressed memcpy).

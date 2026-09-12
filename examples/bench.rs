@@ -37,8 +37,8 @@ fn bench_dataset(name: &str, data: &[u8], mode: DictMode) {
     assert_eq!(&decompressed[..], data);
 
     let mode_str = match mode {
-        DictMode::Reset => "Reset",
         DictMode::Freeze => "Freeze",
+        DictMode::Reset => "Reset",
     };
 
     // Benchmark compression

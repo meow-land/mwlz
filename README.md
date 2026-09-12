@@ -1,12 +1,12 @@
 # mwLZ
 
-A deterministic, dictionary-based block compressor built for one specific job: compressing 64 KB – 1 MB chunks in the `.mw` container format, fast, while staying inside the CPU's L1 cache the whole time.
+A deterministic dictionary block compressor based on prefix trees and quantum byte-packs, engineered for chunk compression while staying entirely inside the CPU's L1 cache.
 
 It is not a general-purpose Zstandard competitor. It trades away ratio at the high end in exchange for something most compressors don't give you: **zero cache misses on the hot path.**
 
 ```toml
 [dependencies]
-mwlz = "0.1.0"
+mwlz = "0.1.1"
 ```
 
 ---
@@ -58,9 +58,8 @@ The lookup table naturally has 4 spare bits (explained below), so run length up 
 
 Once the tree fills up (4096 nodes), you choose what happens next:
 
-- **`DictMode::Reset`** (default) — the tree resets to the 256 roots and starts over. Use this when a block mixes formats internally (e.g. a JSON header followed by a binary blob), where a frozen dictionary tuned to the first format would just waste bytes on the second.
-
-- **`DictMode::Freeze`** — the tree stops growing and becomes read-only. No more node insertions, no more hash table writes — just fast lookups against an already-hot L1 structure. 1.5–2× faster compression on homogeneous data, which is most `.mw` blocks.
+- **`DictMode::Freeze`** (default) — the tree stops growing and becomes read-only. No more node insertions, no more hash table writes — just fast lookups against an already-hot L1 structure. 1.5–2× faster compression on homogeneous data and structured blocks.
+- **`DictMode::Reset`** — the tree resets to the 256 roots and starts over. Use this when a block mixes formats internally (e.g. a JSON header followed by a binary blob), where a frozen dictionary tuned to the first format would just waste bytes on the second.
 
 ### Raw fallback
 
@@ -129,7 +128,7 @@ If overflow isn't set, the token is exactly 2 bytes and still carries up to 7 by
 use mwlz::{compress, decompress, max_compressed_size, DictMode};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let input = b"Deterministic dictionary block compression for .mw files";
+    let input = b"Deterministic dictionary block compression with mwLZ";
 
     let mut comp_buf = vec![0u8; max_compressed_size(input.len())];
     let comp_size = compress(input, &mut comp_buf, DictMode::Freeze)?;
@@ -194,7 +193,7 @@ fn inspect_block(compressed: &[u8]) {
 
 ```toml
 [dependencies]
-mwlz = { version = "0.1.0", default-features = false }
+mwlz = { version = "0.1.1", default-features = false }
 ```
 
 Without the `alloc` feature, the `compress`/`decompress` and `*_with_state` functions are available; the `_to_vec` convenience wrappers are not.
@@ -210,6 +209,7 @@ pub const FORMAT_VERSION: u8 = 1;
 pub const MAGIC: [u8; 2] = [0x4D, 0x4C];
 pub const HEADER_SIZE: usize = 8;
 pub const MAX_NODES: usize = 4096;
+pub const ROOT_COUNT: usize = 256;
 pub const MAX_DEPTH: u8 = 64;
 pub const FLAG_MODE_FREEZE: u8 = 0x01;
 pub const FLAG_RAW_FALLBACK: u8 = 0x02;
@@ -228,9 +228,14 @@ pub struct Node {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DictMode {
-    Reset,
     #[default]
     Freeze,
+    Reset,
+}
+
+impl DictMode {
+    pub const fn from_flags(flags: u8) -> Self;
+    pub const fn to_flag(self) -> u8;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -253,6 +258,7 @@ pub struct CompressorState { /* ~24 KB: node table + transition table */ }
 impl CompressorState {
     pub fn new() -> Self;
     pub fn reset(&mut self);
+    pub fn reset_with_seed(&mut self, seed: u32);
 }
 
 pub struct DecompressorState { /* 16 KB: node table only */ }

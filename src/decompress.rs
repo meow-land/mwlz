@@ -55,11 +55,7 @@ pub fn decompress_into_with_state(
     }
 
     let flags = src[2];
-    let mode = if (flags & FLAG_MODE_FREEZE) != 0 {
-        DictMode::Freeze
-    } else {
-        DictMode::Reset
-    };
+    let mode = DictMode::from_flags(flags);
 
     let uncompressed_size = u32::from_le_bytes([src[4], src[5], src[6], src[7]]) as usize;
 
@@ -276,12 +272,12 @@ pub fn decompress_into_with_state(
 
                     if node_count == MAX_NODES as u16 {
                         match mode {
+                            DictMode::Freeze => {
+                                is_frozen = true;
+                            }
                             DictMode::Reset => {
                                 node_count = ROOT_COUNT as u16;
                                 was_reset = true;
-                            }
-                            DictMode::Freeze => {
-                                is_frozen = true;
                             }
                         }
                     }
